@@ -20,27 +20,17 @@ const model = genAI.getGenerativeModel({
   model: "gemini-1.5-flash"
 });
 
-async function getWikiSummary(query) {
-  if (!query) return null;
+async function getWikiSummary(title) {
+  if (!title) return null;
   try {
-    // 1. Search for the best matching article
-    const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&origin=*`;
-    const searchRes = await fetch(searchUrl);
-    const searchData = await searchRes.json();
-    
-    if (!searchData.query.search || searchData.query.search.length === 0) return null;
-    const bestTitle = searchData.query.search[0].title;
-
-    // 2. Fetch summary for that title
-    const summaryUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(bestTitle.replace(/ /g, "_"))}`;
-    const response = await fetch(summaryUrl);
+    const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`;
+    const response = await fetch(url);
     if (!response.ok) return null;
     const data = await response.json();
-    
     return {
       title: data.title,
       extract: data.extract,
-      url: data.content_urls ? data.content_urls.desktop.page : `https://en.wikipedia.org/wiki/${encodeURIComponent(bestTitle.replace(/ /g, "_"))}`
+      url: data.content_urls.desktop.page
     };
   } catch (err) {
     return null;
@@ -71,30 +61,20 @@ app.post("/analyze", async (req, res) => {
     }
 
     const prompt = `
-      As a Google-Grounded Factual Auditor, analyze the following text for absolute factual accuracy, emulating the precision of a Google Featured Snippet.
-      
-      CRITICAL AUDIT RULES:
-      1. GOOGLE-LEVEL ACCURACY: Compare claims against established facts found in top-tier sources like Google Knowledge Panels and Wikipedia.
-      2. ANALYZE DATES: Identify if technologies or events are attributed to the wrong time period.
-      3. CATEGORY ERRORS: Identify if institutions or people are assigned the wrong profession or purpose.
-      4. QUANTIFY CONFIDENCE: Use the following SCALE strictly:
-         - 80–100%: Factually verified, contemporary, and logically sound.
-         - 40–79%: Contains partial truths, unverified claims, or minor inaccuracies.
-         - 0–39%: Categorically false, anachronistic, or medically/scientifically impossible.
-
-      Text to Audit: "${text}"
+      Analyze the following text for factual accuracy and hallucinations.
+      Text: "${text}"
       
       Return a JSON object with:
-      "accuracy_score": 0-100 (weighted average of sentence scores)
-      "accuracy_label": "CORRECT", "PARTIAL", or "INCORRECT"
-      "explanation": "Deep reasoning including historical/scientific context"
+      "risk": "LOW", "MEDIUM", or "HIGH"
+      "score": 0-100 (risk percentage)
+      "explanation": "Overall reasoning"
       "sentences": [
         {
           "text": "original sentence",
-          "accuracy": 0-100,
-          "why": "Detailed reasoning for this specific score",
-          "corrected_fact": "The objective truth with evidence",
-          "wiki_query": "The most specific search term for Wikipedia verification"
+          "risky": true/false,
+          "why": "explanation",
+          "corrected_fact": "the accurate factual statement",
+          "wiki_query": "topic for wikipedia verification"
         }
       ]
       
@@ -163,97 +143,36 @@ app.post("/analyze", async (req, res) => {
       const searchTerms = text.split(" ").slice(0, 3).join(" ");
       const wikiData = await getWikiSummary(searchTerms);
       
-      let accuracyLabel = "PARTIAL";
-      let accuracyScore = 50;
+      let risk = "MEDIUM";
+      let score = 50;
       let why = "Analysis performed via Wikipedia cross-referencing (AI currently unavailable).";
-      let correctedFact = "";
       
-      // 0. MATH EVALUATOR (Simple Arithmetic Check)
-      const mathMatch = text.match(/(\d+)\s*([\+\-\*\/])\s*(\d+)\s*(is|=)\s*(\d+)/i);
-      if (mathMatch) {
-        const num1 = parseInt(mathMatch[1]);
-        const op = mathMatch[2];
-        const num2 = parseInt(mathMatch[3]);
-        const claimedResult = parseInt(mathMatch[5]);
-        
-        let actualResult;
-        if (op === "+") actualResult = num1 + num2;
-        else if (op === "-") actualResult = num1 - num2;
-        else if (op === "*") actualResult = num1 * num2;
-        else if (op === "/") actualResult = num1 / num2;
-        
-        if (actualResult !== claimedResult) {
-          accuracyLabel = "INCORRECT";
-          accuracyScore = 0;
-          why = `Mathematical Error: The calculation ${num1} ${op} ${num2} equals ${actualResult}, not ${claimedResult}.`;
-          correctedFact = `${num1} ${op} ${num2} = ${actualResult}`;
-          return res.json({
-            result: JSON.stringify({
-              accuracy_score: 0,
-              accuracy_label: "INCORRECT",
-              explanation: "SYSTEM NOTICE: A fundamental mathematical error was detected in the statement.",
-              sentences: [{ text, accuracy: 0, why, corrected_fact: correctedFact }]
-            })
-          });
-        } else {
-          accuracyLabel = "CORRECT";
-          accuracyScore = 100;
-          why = `Verified: The calculation ${num1} ${op} ${num2} = ${claimedResult} is mathematically correct.`;
-        }
-      }
-
       if (wikiData) {
         const inputLower = text.toLowerCase();
         const wikiLower = wikiData.extract.toLowerCase();
-        const wikiTitleLower = wikiData.title.toLowerCase();
         
-        // 1. Superlative/Categorical Check (e.g., Fastest, Biggest)
-        if (inputLower.includes("fastest") && (wikiLower.includes("slow") || wikiLower.includes("among the slowest"))) {
-          accuracyLabel = "INCORRECT";
-          accuracyScore = 5;
-          why = `Fact Check: Input claims '${text}', but Wikipedia notes this subject is actually known for being slow.`;
-          correctedFact = `${wikiData.title} is notoriously slow, with a top speed usually less than 1 mph. The Cheetah is the fastest land animal.`;
-        } 
-        // 2. Profession/Field Check
-        else if (inputLower.includes("football") && wikiLower.includes("cricket")) {
-          accuracyLabel = "INCORRECT";
-          accuracyScore = 15;
-          why = `Fact Check: Input claims a sports mismatch. Wikipedia identifies him as a cricketer.`;
-          correctedFact = `${wikiData.title} is a world-renowned cricketer, not a football player.`;
-        }
-        // 3. Anachronism Check (Washington/Internet)
-        else if (inputLower.includes("internet") && wikiTitleLower.includes("washington")) {
-          accuracyLabel = "INCORRECT";
-          accuracyScore = 2;
-          why = "Fact Check: Chronological impossibility detected. The internet post-dates this subject by centuries.";
-          correctedFact = "The internet was invented in the 20th century. George Washington died in 1799.";
-        }
-        // 4. Institution Category Check (AIIMS/Engineering)
-        else if (inputLower.includes("engineering") && wikiLower.includes("medical")) {
-          accuracyLabel = "INCORRECT";
-          accuracyScore = 10;
-          why = "Fact Check: Institution category mismatch. Wikipedia defines this as a medical institute.";
-          correctedFact = `${wikiData.title} is a premier medical university, not an engineering college.`;
-        }
-        // 5. General consistency check
-        else if (wikiLower.includes(inputLower.split(" ")[0].toLowerCase())) {
-          accuracyLabel = "CORRECT";
-          accuracyScore = 90;
-          why = "Fact Check: The statement appears consistent with general knowledge found on Wikipedia.";
+        // Basic factual check for demo purposes
+        if (inputLower.includes("engineering") && wikiLower.includes("medical")) {
+          risk = "HIGH";
+          score = 90;
+          why = `Fact Check: Input mentions 'engineering' but Wikipedia describes '${wikiData.title}' as a medical institution.`;
+        } else if (wikiLower.includes(inputLower.split(" ")[0].toLowerCase())) {
+          risk = "LOW";
+          score = 20;
+          why = "Fact Check: Information seems consistent with Wikipedia records.";
         }
       }
 
       return res.json({
         result: JSON.stringify({
-          accuracy_score: accuracyScore,
-          accuracy_label: accuracyLabel,
-          explanation: "SYSTEM NOTICE: The AI service is currently unavailable. We have performed a rigorous factual cross-reference using Wikipedia.",
+          risk: risk,
+          score: score,
+          explanation: "SYSTEM NOTICE: The AI service is currently unavailable. We have performed a factual check using Wikipedia as a fallback.",
           sentences: [
             { 
               text: text, 
-              accuracy: accuracyScore, 
+              risky: risk === "HIGH", 
               why: why,
-              corrected_fact: correctedFact,
               wiki: wikiData
             }
           ]
