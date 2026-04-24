@@ -53,7 +53,7 @@ function cleanJsonResponse(text) {
 }
 
 app.post("/analyze", async (req, res) => {
-  const { text, model: userModel } = req.body;
+  const { text } = req.body;
 
   try {
     if (!process.env.GOOGLE_API_KEY) {
@@ -73,7 +73,6 @@ app.post("/analyze", async (req, res) => {
           "text": "original sentence",
           "risky": true/false,
           "why": "explanation",
-          "corrected_fact": "the accurate factual statement",
           "wiki_query": "topic for wikipedia verification"
         }
       ]
@@ -81,47 +80,16 @@ app.post("/analyze", async (req, res) => {
       Respond ONLY with the JSON object.
     `;
 
-    // Prioritize user selected model
-    const modelsToTry = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro"];
-    if (userModel && !modelsToTry.includes(userModel)) {
-      modelsToTry.unshift(userModel);
-    } else if (userModel) {
-      // Move user model to front
-      const index = modelsToTry.indexOf(userModel);
-      modelsToTry.splice(index, 1);
-      modelsToTry.unshift(userModel);
-    }
-    let lastError = null;
-    let analysisText = null;
-
-    for (const modelName of modelsToTry) {
-      try {
-        console.log(`Attempting analysis with model: ${modelName}...`);
-        const currentModel = genAI.getGenerativeModel({ model: modelName });
-        const result = await currentModel.generateContent(prompt);
-        const response = await result.response;
-        analysisText = response.text();
-        if (analysisText) {
-          console.log(`Success with ${modelName}`);
-          break;
-        }
-      } catch (err) {
-        console.log(`${modelName} failed: ${err.message}`);
-        lastError = err;
-      }
-    }
-
-    if (!analysisText) {
-      throw lastError || new Error("All Gemini models failed to respond");
-    }
-
-    const cleanedText = cleanJsonResponse(analysisText);
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const rawText = response.text();
+    const cleanedText = cleanJsonResponse(rawText);
     
     let analysis;
     try {
       analysis = JSON.parse(cleanedText);
     } catch (parseErr) {
-      console.error("JSON Parse Error:", parseErr.message, "Raw Text:", analysisText);
+      console.error("JSON Parse Error:", parseErr.message, "Raw Text:", rawText);
       throw new Error("Invalid response format from AI");
     }
 
@@ -138,56 +106,17 @@ app.post("/analyze", async (req, res) => {
   } catch (err) {
     console.error("Analysis Error:", err.message);
     
-    // SMART FALLBACK: If AI fails, use Wikipedia directly to provide some value
-    try {
-      const searchTerms = text.split(" ").slice(0, 3).join(" ");
-      const wikiData = await getWikiSummary(searchTerms);
-      
-      let risk = "MEDIUM";
-      let score = 50;
-      let why = "Analysis performed via Wikipedia cross-referencing (AI currently unavailable).";
-      
-      if (wikiData) {
-        const inputLower = text.toLowerCase();
-        const wikiLower = wikiData.extract.toLowerCase();
-        
-        // Basic factual check for demo purposes
-        if (inputLower.includes("engineering") && wikiLower.includes("medical")) {
-          risk = "HIGH";
-          score = 90;
-          why = `Fact Check: Input mentions 'engineering' but Wikipedia describes '${wikiData.title}' as a medical institution.`;
-        } else if (wikiLower.includes(inputLower.split(" ")[0].toLowerCase())) {
-          risk = "LOW";
-          score = 20;
-          why = "Fact Check: Information seems consistent with Wikipedia records.";
-        }
-      }
-
-      return res.json({
-        result: JSON.stringify({
-          risk: risk,
-          score: score,
-          explanation: "SYSTEM NOTICE: The AI service is currently unavailable. We have performed a factual check using Wikipedia as a fallback.",
-          sentences: [
-            { 
-              text: text, 
-              risky: risk === "HIGH", 
-              why: why,
-              wiki: wikiData
-            }
-          ]
-        })
-      });
-    } catch (fallbackErr) {
-      return res.json({
-        result: JSON.stringify({
-          risk: "HIGH",
-          score: 99,
-          explanation: `System Error: ${err.message}. Please check your connection and API key.`,
-          sentences: [{ text: text, risky: true, why: "Analysis could not be completed." }]
-        })
-      });
-    }
+    // Fallback if Gemini fails
+    return res.json({
+      result: JSON.stringify({
+        risk: "HIGH",
+        score: 95,
+        explanation: `Analysis failed: ${err.message}. Please check your API key and connection.`,
+        sentences: [
+          { text: text, risky: true, why: "System error occurred during analysis." }
+        ]
+      })
+    });
   }
 });
 

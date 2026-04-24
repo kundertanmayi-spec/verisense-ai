@@ -22,9 +22,9 @@
     <nav class="nav-menu">
       <a href="#" class="nav-item active" id="nav-analyzer" onclick="showSection('analyzer')"><i data-lucide="layout-dashboard"></i> <span>Analyzer</span></a>
       <a href="#" class="nav-item" id="nav-history" onclick="showSection('history')"><i data-lucide="clock"></i> <span>History</span></a>
-      <a href="#" class="nav-item" id="nav-insights" onclick="showSection('insights')"><i data-lucide="bar-chart-3"></i> <span>Insights</span></a>
-      <a href="#" class="nav-item" id="nav-saved" onclick="showSection('saved')"><i data-lucide="bookmark"></i> <span>Saved Reports</span></a>
-      <a href="#" class="nav-item" id="nav-settings" onclick="showSection('settings')"><i data-lucide="settings"></i> <span>Settings</span></a>
+      <a href="#" class="nav-item"><i data-lucide="bar-chart-3"></i> <span>Insights</span></a>
+      <a href="#" class="nav-item"><i data-lucide="bookmark"></i> <span>Saved Reports</span></a>
+      <a href="#" class="nav-item"><i data-lucide="settings"></i> <span>Settings</span></a>
     </nav>
 
     <div class="sidebar-footer">
@@ -38,143 +38,146 @@
     <!-- Analyzer Section -->
     <div id="analyzer-view">
       <header class="top-bar">
-        <div class="title-group">
-          <h1>AI Hallucination <span class="highlight-text">Detection System</span></h1>
-          <p class="subtitle">Detect. Highlight. Explain.</p>
-        </div>
-        <div class="top-actions">
-          <button class="icon-btn" id="theme-toggle"><i data-lucide="sun"></i></button>
-          <button class="about-btn" id="about-btn" onclick="toggleAbout()"><i data-lucide="info"></i> About System</button>
-        </div>
-      </header>
+      <div class="title-group">
+        <h1>AI Hallucination <span class="highlight-text">Detection System</span></h1>
+        <p class="subtitle">Detect. Highlight. Explain.</p>
+      </div>
+      <div class="top-actions">
+        <button class="icon-btn" id="theme-toggle"><i data-lucide="sun"></i></button>
+        <button class="about-btn"><i data-lucide="info"></i> About System</button>
+      </div>
+    </header>
 
-      <div class="dashboard-grid">
-        <!-- Left Column: Input -->
-        <section class="left-col">
-          <div class="card input-card">
-            <div class="card-header">
-              <span class="step-badge">1</span>
-              <h3>INPUT TEXT</h3>
-              <button class="text-action-btn" onclick="clearText()"><i data-lucide="trash-2"></i> Clear Text</button>
-            </div>
-            <p class="card-instruction">Paste AI-generated text below to analyze for hallucinations.</p>
-            <div class="textarea-wrapper">
-              <textarea id="text" placeholder="Start typing or paste your text here..."></textarea>
-              <div class="char-count"><span id="current-count">0</span> / 2000</div>
-            </div>
-            <button onclick="analyze()" id="analyze-btn" class="primary-btn">
-              <i data-lucide="search" class="btn-icon"></i>
-              <span class="btn-text">Analyze Text</span>
-              <div class="spinner hidden" id="spinner"></div>
+    <div class="dashboard-grid">
+      <!-- Left Column: Input -->
+      <section class="left-col">
+        <div class="card input-card">
+          <div class="card-header">
+            <span class="step-badge">1</span>
+            <h3>INPUT TEXT</h3>
+            <button class="text-action-btn" onclick="clearText()"><i data-lucide="trash-2"></i> Clear Text</button>
+          </div>
+          <p class="card-instruction">Paste AI-generated text below to analyze for hallucinations.</p>
+          <div class="textarea-wrapper">
+            <textarea id="text" placeholder="Start typing or paste your text here..."></textarea>
+            <div class="char-count"><span id="current-count">0</span> / 2000</div>
+          </div>
+          <button onclick="analyze()" id="analyze-btn" class="primary-btn">
+            <i data-lucide="search" class="btn-icon"></i>
+            <span class="btn-text">Analyze Text</span>
+            <div class="spinner hidden" id="spinner"></div>
+          </button>
+        </div>
+
+        <div class="card examples-card">
+          <div class="card-header">
+            <i data-lucide="sparkles"></i>
+            <h3>Try these examples</h3>
+          </div>
+          <div class="examples-list">
+            <button class="example-item" onclick="useExample(0)">
+              <span>The moon is made of green cheese.</span>
+              <i data-lucide="arrow-right"></i>
+            </button>
+            <button class="example-item" onclick="useExample(1)">
+              <span>The Great Wall of China is visible from space.</span>
+              <i data-lucide="arrow-right"></i>
+            </button>
+            <button class="example-item" onclick="useExample(2)">
+              <span>Humans use only 10% of their brain.</span>
+              <i data-lucide="arrow-right"></i>
             </button>
           </div>
+        </div>
+      </section>
 
-          <div class="card examples-card">
+      <!-- Right Column: Results -->
+      <section class="right-col">
+        <div id="results-placeholder" class="card empty-results">
+          <i data-lucide="file-search"></i>
+          <p>Analysis results will appear here after you process some text.</p>
+        </div>
+
+        <div id="results-container" class="hidden">
+          <div class="card results-header-card">
             <div class="card-header">
-              <i data-lucide="sparkles"></i>
-              <h3>Try these examples</h3>
-            </div>
-            <div class="examples-list">
-              <button class="example-item" onclick="useExample(0)">
-                <span>The moon is made of green cheese.</span>
-                <i data-lucide="arrow-right"></i>
-              </button>
-              <button class="example-item" onclick="useExample(1)">
-                <span>The Great Wall of China is visible from space.</span>
-                <i data-lucide="arrow-right"></i>
-              </button>
-              <button class="example-item" onclick="useExample(2)">
-                <span>Humans use only 10% of their brain.</span>
-                <i data-lucide="arrow-right"></i>
-              </button>
-            </div>
-          </div>
-        </section>
-
-        <!-- Right Column: Results -->
-        <section class="right-col">
-          <div id="results-placeholder" class="card empty-results">
-            <i data-lucide="file-search"></i>
-            <p>Analysis results will appear here after you process some text.</p>
-          </div>
-
-          <div id="results-container" class="hidden">
-            <div class="card results-header-card">
-              <div class="card-header">
-                <span class="step-badge">2</span>
-                <h3>ANALYSIS RESULT</h3>
-                <div class="header-actions">
-                  <button class="text-action-btn" onclick="saveCurrentReport()"><i data-lucide="bookmark"></i> Save</button>
-                  <button class="text-action-btn" onclick="downloadReport()"><i data-lucide="download"></i> Download Report</button>
-                  <button class="text-action-btn" onclick="shareResult()"><i data-lucide="share-2"></i> Share</button>
-                </div>
-              </div>
-            </div>
-
-            <div class="summary-grid">
-              <div class="card risk-card">
-                <div class="risk-info">
-                  <h3>Hallucination Risk</h3>
-                  <div id="risk-level" class="risk-level-text">HIGH</div>
-                  <p id="risk-description">This text contains multiple potential hallucinations.</p>
-                </div>
-                <div class="progress-container">
-                  <div class="circular-progress" id="circular-progress">
-                    <div class="inner-circle"><span id="score-text">0</span>%</div>
-                  </div>
-                  <div class="score-label">Risk Score</div>
-                </div>
-              </div>
-
-              <div class="card breakdown-card">
-                <h3>Breakdown</h3>
-                <div class="breakdown-list">
-                  <div class="breakdown-item">
-                    <span class="dot high"></span>
-                    <span class="label">High Risk</span>
-                    <div class="bar-bg"><div class="bar-fill high" id="bar-high" style="width: 0%"></div></div>
-                    <span class="count" id="count-high">0</span>
-                  </div>
-                  <div class="breakdown-item">
-                    <span class="dot medium"></span>
-                    <span class="label">Medium Risk</span>
-                    <div class="bar-bg"><div class="bar-fill medium" id="bar-medium" style="width: 0%"></div></div>
-                    <span class="count" id="count-medium">0</span>
-                  </div>
-                  <div class="breakdown-item">
-                    <span class="dot low"></span>
-                    <span class="label">Low Risk</span>
-                    <div class="bar-bg"><div class="bar-fill low" id="bar-low" style="width: 0%"></div></div>
-                    <span class="count" id="count-low">0</span>
-                  </div>
-                  <div class="breakdown-item">
-                    <span class="dot reliable"></span>
-                    <span class="label">Reliable</span>
-                    <div class="bar-bg"><div class="bar-fill reliable" id="bar-reliable" style="width: 0%"></div></div>
-                    <span class="count" id="count-reliable">0</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="card hallucinations-card">
-              <h3>Detected Hallucinations</h3>
-              <div id="sentences-list" class="findings-list"></div>
-            </div>
-
-            <div class="explanation-row">
-              <div class="card overall-card">
-                <div class="card-header"><i data-lucide="lightbulb"></i> <h3>Overall Explanation</h3></div>
-                <p id="overall-explanation"></p>
-              </div>
-              <div class="card sources-card">
-                <div class="card-header"><i data-lucide="globe"></i> <h3>Sources to Verify</h3></div>
-                <ul id="sources-list" class="source-list"></ul>
+              <span class="step-badge">2</span>
+              <h3>ANALYSIS RESULT</h3>
+              <div class="header-actions">
+                <button class="text-action-btn" onclick="downloadReport()"><i data-lucide="download"></i> Download Report</button>
+                <button class="text-action-btn" onclick="shareResult()"><i data-lucide="share-2"></i> Share</button>
               </div>
             </div>
           </div>
-        </section>
-      </div>
+
+          <div class="summary-grid">
+            <div class="card risk-card">
+              <div class="risk-info">
+                <h3>Hallucination Risk</h3>
+                <div id="risk-level" class="risk-level-text">HIGH</div>
+                <p id="risk-description">This text contains multiple potential hallucinations.</p>
+              </div>
+              <div class="progress-container">
+                <div class="circular-progress" id="circular-progress">
+                  <div class="inner-circle"><span id="score-text">0</span>%</div>
+                </div>
+                <div class="score-label">Risk Score</div>
+              </div>
+            </div>
+
+            <div class="card breakdown-card">
+              <h3>Breakdown</h3>
+              <div class="breakdown-list">
+                <div class="breakdown-item">
+                  <span class="dot high"></span>
+                  <span class="label">High Risk</span>
+                  <div class="bar-bg"><div class="bar-fill high" id="bar-high" style="width: 0%"></div></div>
+                  <span class="count" id="count-high">0</span>
+                </div>
+                <div class="breakdown-item">
+                  <span class="dot medium"></span>
+                  <span class="label">Medium Risk</span>
+                  <div class="bar-bg"><div class="bar-fill medium" id="bar-medium" style="width: 0%"></div></div>
+                  <span class="count" id="count-medium">0</span>
+                </div>
+                <div class="breakdown-item">
+                  <span class="dot low"></span>
+                  <span class="label">Low Risk</span>
+                  <div class="bar-bg"><div class="bar-fill low" id="bar-low" style="width: 0%"></div></div>
+                  <span class="count" id="count-low">0</span>
+                </div>
+                <div class="breakdown-item">
+                  <span class="dot reliable"></span>
+                  <span class="label">Reliable</span>
+                  <div class="bar-bg"><div class="bar-fill reliable" id="bar-reliable" style="width: 0%"></div></div>
+                  <span class="count" id="count-reliable">0</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card hallucinations-card">
+            <h3>Detected Hallucinations</h3>
+            <div id="sentences-list" class="findings-list"></div>
+          </div>
+
+          <div class="explanation-row">
+            <div class="card overall-card">
+              <div class="card-header"><i data-lucide="lightbulb"></i> <h3>Overall Explanation</h3></div>
+              <p id="overall-explanation"></p>
+            </div>
+            <div class="card sources-card">
+              <div class="card-header"><i data-lucide="globe"></i> <h3>Sources to Verify</h3></div>
+              <ul id="sources-list" class="source-list">
+                <li>Wikipedia</li>
+                <li>Encyclopedia Britannica</li>
+                <li>National Geographic</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
     </div>
 
     <!-- History Section -->
@@ -196,190 +199,7 @@
         </div>
       </div>
     </div>
-
-    <!-- Insights Section -->
-    <div id="insights-view" class="hidden">
-      <header class="top-bar">
-        <div class="title-group">
-          <h1>System <span class="highlight-text">Insights</span></h1>
-          <p class="subtitle">Data-driven analytics of your analysis history.</p>
-        </div>
-      </header>
-      
-      <div class="insights-grid">
-        <div class="card stat-card">
-          <div class="stat-icon blue"><i data-lucide="activity"></i></div>
-          <div class="stat-info">
-            <h4 id="stat-total">0</h4>
-            <p>Total Analyses</p>
-          </div>
-        </div>
-        <div class="card stat-card">
-          <div class="stat-icon red"><i data-lucide="alert-triangle"></i></div>
-          <div class="stat-info">
-            <h4 id="stat-hallucinations">0%</h4>
-            <p>Hallucination Rate</p>
-          </div>
-        </div>
-        <div class="card stat-card">
-          <div class="stat-icon purple"><i data-lucide="target"></i></div>
-          <div class="stat-info">
-            <h4 id="stat-avg-score">0%</h4>
-            <p>Avg. Risk Score</p>
-          </div>
-        </div>
-      </div>
-
-      <div class="card chart-card">
-        <div class="card-header">
-          <i data-lucide="pie-chart"></i>
-          <h3>RISK DISTRIBUTION</h3>
-        </div>
-        <div class="distribution-container">
-          <div class="dist-row">
-            <span class="dist-label">High Risk</span>
-            <div class="dist-bar-wrapper"><div id="dist-high" class="dist-bar high" style="width: 0%"></div></div>
-            <span id="dist-high-pct" class="dist-value">0%</span>
-          </div>
-          <div class="dist-row">
-            <span class="dist-label">Medium Risk</span>
-            <div class="dist-bar-wrapper"><div id="dist-medium" class="dist-bar medium" style="width: 0%"></div></div>
-            <span id="dist-medium-pct" class="dist-value">0%</span>
-          </div>
-          <div class="dist-row">
-            <span class="dist-label">Low Risk</span>
-            <div class="dist-bar-wrapper"><div id="dist-low" class="dist-bar low" style="width: 0%"></div></div>
-            <span id="dist-low-pct" class="dist-value">0%</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Saved Reports Section -->
-    <div id="saved-view" class="hidden">
-      <header class="top-bar">
-        <div class="title-group">
-          <h1>Saved <span class="highlight-text">Reports</span></h1>
-          <p class="subtitle">Quick access to your bookmarked analyses.</p>
-        </div>
-      </header>
-      
-      <div class="card saved-card">
-        <div class="card-header">
-          <i data-lucide="bookmark"></i>
-          <h3>BOOKMARKED</h3>
-        </div>
-        <div id="saved-list" class="history-list">
-          <div class="empty-history">No saved reports yet. Bookmark an analysis to see it here!</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Settings Section -->
-    <div id="settings-view" class="hidden">
-      <header class="top-bar">
-        <div class="title-group">
-          <h1>System <span class="highlight-text">Settings</span></h1>
-          <p class="subtitle">Configure your analysis engine and privacy.</p>
-        </div>
-      </header>
-      
-      <div class="settings-container">
-        <div class="card settings-card">
-          <div class="card-header">
-            <i data-lucide="cpu"></i>
-            <h3>AI PREFERENCES</h3>
-          </div>
-          <div class="settings-group">
-            <div class="setting-item">
-              <div class="setting-info">
-                <h4>AI Model</h4>
-                <p>Select the engine used for hallucination detection.</p>
-              </div>
-              <select id="model-select" class="settings-select">
-                <option value="gemini-1.5-flash">Gemini 1.5 Flash (Fastest)</option>
-                <option value="gemini-1.5-pro">Gemini 1.5 Pro (Most Accurate)</option>
-                <option value="gemini-pro">Gemini Pro (Stable)</option>
-              </select>
-            </div>
-            
-            <div class="setting-item">
-              <div class="setting-info">
-                <h4>Analysis Depth</h4>
-                <p>Toggle deep reasoning for complex factual checks.</p>
-              </div>
-              <label class="switch">
-                <input type="checkbox" id="deep-reasoning" checked>
-                <span class="slider round"></span>
-              </label>
-            </div>
-          </div>
-        </div>
-
-        <div class="card settings-card">
-          <div class="card-header">
-            <i data-lucide="database"></i>
-            <h3>DATA & PRIVACY</h3>
-          </div>
-          <div class="settings-group">
-            <div class="setting-item">
-              <div class="setting-info">
-                <h4>Auto-Save History</h4>
-                <p>Automatically save every analysis to your history list.</p>
-              </div>
-              <label class="switch">
-                <input type="checkbox" id="auto-save" checked>
-                <span class="slider round"></span>
-              </label>
-            </div>
-          </div>
-          
-          <div class="danger-zone">
-            <h4>Danger Zone</h4>
-            <p>Irreversibly clear all local application data.</p>
-            <button class="danger-btn" onclick="clearAllData()">Clear All Local Data</button>
-          </div>
-        </div>
-      </div>
-    </div>
   </main>
-</div>
-
-<!-- About Modal -->
-<div id="about-modal" class="modal-overlay hidden">
-  <div class="modal-content card">
-    <div class="modal-header">
-      <div class="header-icon"><i data-lucide="info"></i></div>
-      <h2>About <span class="highlight-text">VeriSense AI</span></h2>
-      <button class="close-btn" onclick="toggleAbout()">&times;</button>
-    </div>
-    <div class="modal-body">
-      <p>VeriSense AI is a state-of-the-art hallucination detection system designed to ensure the factual integrity of AI-generated content.</p>
-      
-      <div class="info-grid">
-        <div class="info-item">
-          <i data-lucide="brain-circuit"></i>
-          <h4>Gemini Powered</h4>
-          <p>Uses Google's advanced Gemini 1.5 Pro/Flash models for deep semantic analysis.</p>
-        </div>
-        <div class="info-item">
-          <i data-lucide="search"></i>
-          <h4>Real-time Verification</h4>
-          <p>Cross-references claims with Wikipedia and Google Search in real-time.</p>
-        </div>
-        <div class="info-item">
-          <i data-lucide="shield-check"></i>
-          <h4>Risk Scoring</h4>
-          <p>Provides detailed risk breakdown and certainty scores for every sentence.</p>
-        </div>
-      </div>
-      
-      <div class="modal-footer">
-        <p>Built for hackers, researchers, and creators. VeriSense AI 2024.</p>
-        <button class="primary-btn" onclick="toggleAbout()">Got it!</button>
-      </div>
-    </div>
-  </div>
 </div>
 
 <script>

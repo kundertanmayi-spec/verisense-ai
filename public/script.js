@@ -54,145 +54,21 @@ function saveToHistory(text, result) {
 function showSection(sectionId) {
   const analyzerView = document.getElementById("analyzer-view");
   const historyView = document.getElementById("history-view");
-  const insightsView = document.getElementById("insights-view");
-  const savedView = document.getElementById("saved-view");
-  const settingsView = document.getElementById("settings-view");
   const navAnalyzer = document.getElementById("nav-analyzer");
   const navHistory = document.getElementById("nav-history");
-  const navInsights = document.getElementById("nav-insights");
-  const navSaved = document.getElementById("nav-saved");
-  const navSettings = document.getElementById("nav-settings");
-
-  // Reset active states
-  [navAnalyzer, navHistory, navInsights, navSaved, navSettings].forEach(n => n.classList.remove("active"));
-  [analyzerView, historyView, insightsView, savedView, settingsView].forEach(v => v.classList.add("hidden"));
 
   if (sectionId === "analyzer") {
     analyzerView.classList.remove("hidden");
+    historyView.classList.add("hidden");
     navAnalyzer.classList.add("active");
-  } else if (sectionId === "history") {
+    navHistory.classList.remove("active");
+  } else {
+    analyzerView.classList.add("hidden");
     historyView.classList.remove("hidden");
+    navAnalyzer.classList.remove("active");
     navHistory.classList.add("active");
     renderHistory();
-  } else if (sectionId === "insights") {
-    insightsView.classList.remove("hidden");
-    navInsights.classList.add("active");
-    renderInsights();
-  } else if (sectionId === "saved") {
-    savedView.classList.remove("hidden");
-    navSaved.classList.add("active");
-    renderSavedReports();
-  } else if (sectionId === "settings") {
-    settingsView.classList.remove("hidden");
-    navSettings.classList.add("active");
   }
-}
-
-function clearAllData() {
-  if (confirm("Are you sure you want to clear all history and saved reports? This cannot be undone.")) {
-    localStorage.removeItem("verisense_history");
-    localStorage.removeItem("verisense_saved");
-    history = [];
-    savedReports = [];
-    alert("All data cleared successfully.");
-    showSection("analyzer");
-  }
-}
-
-// Saved Reports Management
-let savedReports = JSON.parse(localStorage.getItem("verisense_saved") || "[]");
-
-function saveCurrentReport() {
-  if (!currentAnalysisData) return;
-  
-  const alreadySaved = savedReports.find(r => r.timestamp === currentAnalysisData.timestamp);
-  if (alreadySaved) {
-    alert("This report is already saved!");
-    return;
-  }
-
-  savedReports.unshift({
-    timestamp: Date.now(),
-    text: textarea.value,
-    result: currentAnalysisData
-  });
-  
-  localStorage.setItem("verisense_saved", JSON.stringify(savedReports));
-  alert("Report bookmarked successfully!");
-}
-
-function renderSavedReports() {
-  const list = document.getElementById("saved-list");
-  list.innerHTML = "";
-
-  if (savedReports.length === 0) {
-    list.innerHTML = '<div class="empty-history">No saved reports yet. Bookmark an analysis to see it here!</div>';
-    return;
-  }
-
-  savedReports.forEach((item, index) => {
-    const div = document.createElement("div");
-    div.className = "history-item";
-    div.onclick = () => {
-      textarea.value = item.text;
-      renderResults(item.result);
-      showSection("analyzer");
-    };
-
-    const date = new Date(item.timestamp).toLocaleDateString();
-    const riskClass = item.result.risk.toLowerCase();
-
-    div.innerHTML = `
-      <div class="history-item-info">
-        <div class="history-item-text">${item.text}</div>
-        <div class="history-item-meta">
-          <span>${date}</span>
-          <span class="history-item-risk ${riskClass}">${item.result.risk}</span>
-          <span>${item.result.score}% Risk</span>
-        </div>
-      </div>
-      <div class="history-actions">
-        <button class="delete-btn" onclick="deleteSavedReport(event, ${index})"><i data-lucide="trash-2"></i></button>
-      </div>
-    `;
-    list.appendChild(div);
-  });
-  lucide.createIcons();
-}
-
-function deleteSavedReport(e, index) {
-  e.stopPropagation();
-  savedReports.splice(index, 1);
-  localStorage.setItem("verisense_saved", JSON.stringify(savedReports));
-  renderSavedReports();
-}
-
-function renderInsights() {
-  if (history.length === 0) return;
-
-  const total = history.length;
-  const highRisk = history.filter(h => h.result.risk === "HIGH").length;
-  const mediumRisk = history.filter(h => h.result.risk === "MEDIUM").length;
-  const lowRisk = history.filter(h => h.result.risk === "LOW").length;
-  
-  const avgScore = Math.round(history.reduce((acc, h) => acc + h.result.score, 0) / total);
-  const hallucinationRate = Math.round(((highRisk + mediumRisk) / total) * 100);
-
-  // Update Stats
-  document.getElementById("stat-total").innerText = total;
-  document.getElementById("stat-hallucinations").innerText = `${hallucinationRate}%`;
-  document.getElementById("stat-avg-score").innerText = `${avgScore}%`;
-
-  // Update Distribution Bars
-  updateDistBar("high", highRisk, total);
-  updateDistBar("medium", mediumRisk, total);
-  updateDistBar("low", lowRisk, total);
-}
-
-function updateDistBar(id, count, total) {
-  const pct = Math.round((count / total) * 100);
-  document.getElementById(`dist-${id}`).style.width = `${pct}%`;
-  document.getElementById(`dist-${id}-pct`).innerText = `${pct}%`;
 }
 
 function renderHistory() {
@@ -255,13 +131,12 @@ async function analyze() {
   btnText.innerText = "Analyzing...";
 
   try {
-    const model = document.getElementById("model-select").value;
     const res = await fetch("/analyze", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ text: textInput, model }),
+      body: JSON.stringify({ text: textInput }),
     });
 
     const data = await res.json();
@@ -296,27 +171,15 @@ function renderResults(data) {
     "RELIABLE": "#3b82f6"
   };
 
-  // Verdict Mapping
-  const verdicts = {
-    "HIGH": { text: "INACCURATE", desc: "This claim is contradicted by verified factual sources." },
-    "MEDIUM": { text: "PARTIALLY TRUE", desc: "This text contains mixed facts or unverified claims." },
-    "LOW": { text: "ACCURATE", desc: "This information is consistent with verified factual records." }
-  };
-
-  const verdict = verdicts[data.risk] || verdicts["MEDIUM"];
-  const riskColor = colors[data.risk] || colors["MEDIUM"];
+  const riskColor = colors[data.risk] || colors["LOW"];
 
   // Update Score & Risk Level
-  const riskTitleEl = document.querySelector(".risk-info h3");
-  const riskLevelEl = document.getElementById("risk-level");
-  const riskDescEl = document.getElementById("risk-description");
   const scoreText = document.getElementById("score-text");
+  const riskLevel = document.getElementById("risk-level");
   const progressCircle = document.getElementById("circular-progress");
   
-  riskTitleEl.innerText = "Fact Check Verdict";
-  riskLevelEl.innerText = verdict.text;
-  riskLevelEl.style.color = riskColor;
-  riskDescEl.innerText = verdict.desc;
+  riskLevel.innerText = data.risk;
+  riskLevel.style.color = riskColor;
 
   // Animate score
   let currentScore = 0;
@@ -369,23 +232,7 @@ function renderResults(data) {
       <div class="finding-status ${colorClass}"><i data-lucide="${icon}"></i></div>
       <div class="finding-content">
         <div class="finding-text">${sentence.text}</div>
-        ${sentence.wiki ? `
-          <div class="search-insight-box">
-            <div class="insight-header">
-              <i data-lucide="globe"></i>
-              <span>According to Web Sources...</span>
-            </div>
-            <div class="insight-snippet">
-              <a href="${sentence.wiki.url}" target="_blank" class="snippet-title">${sentence.wiki.title}</a>
-              <p>${sentence.wiki.extract.substring(0, 200)}...</p>
-            </div>
-            <div class="insight-verdict ${sentence.risky ? 'fail' : 'pass'}">
-              <i data-lucide="${sentence.risky ? 'x-circle' : 'check-circle'}"></i>
-              <span>Verdict: ${sentence.risky ? 'Inconsistent' : 'Verified'}</span>
-            </div>
-          </div>
-        ` : ""}
-
+        <div class="finding-subtext">${sentence.why}</div>
         <div class="finding-actions">
           <button class="why-btn-small" onclick="toggleWhy(${index})">Why?</button>
           <a href="${googleSearchUrl}" target="_blank" class="platform-link google-link"><i data-lucide="search"></i> Google</a>
@@ -403,26 +250,17 @@ function renderResults(data) {
   // Update Sources
   const sourcesList = document.getElementById("sources-list");
   sourcesList.innerHTML = "";
-  const uniqueSources = new Map();
+  const uniqueSources = new Set();
   data.sentences.forEach(s => {
-    if (s.wiki) uniqueSources.set(s.wiki.title, s.wiki.url);
+    if (s.wiki) uniqueSources.add(s.wiki.title);
   });
 
   if (uniqueSources.size === 0) {
-    const generalSources = [
-      { name: "Google Search", url: "https://www.google.com" },
-      { name: "Wikipedia", url: "https://www.wikipedia.org" },
-      { name: "Britannica", url: "https://www.britannica.com" }
-    ];
-    generalSources.forEach(source => {
-      const li = document.createElement("li");
-      li.innerHTML = `<a href="${source.url}" target="_blank" class="source-link"><i data-lucide="external-link"></i> ${source.name}</a>`;
-      sourcesList.appendChild(li);
-    });
+    sourcesList.innerHTML = "<li>General Knowledge Base</li><li>AI Model Weights</li>";
   } else {
-    uniqueSources.forEach((url, title) => {
+    uniqueSources.forEach(source => {
       const li = document.createElement("li");
-      li.innerHTML = `<a href="${url}" target="_blank" class="source-link"><i data-lucide="book-open"></i> ${title}</a>`;
+      li.innerText = source;
       sourcesList.appendChild(li);
     });
   }
@@ -506,9 +344,4 @@ async function shareResult() {
       alert('Failed to copy to clipboard.');
     }
   }
-}
-
-function toggleAbout() {
-  const modal = document.getElementById("about-modal");
-  modal.classList.toggle("hidden");
 }

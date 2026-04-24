@@ -4,15 +4,13 @@ dotenv.config();
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
 
-async function testV1() {
-  console.log("Testing v1 API...");
+async function listModels() {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }, { apiVersion: "v1" });
-    const result = await model.generateContent("test");
-    console.log("V1 Result:", await result.response.text());
+    const models = await genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    console.log("Model initialized successfully");
   } catch (err) {
-    console.error("V1 Error:", err.message);
+    console.error("Error initializing model:", err.message);
   }
 }
 
-testV1();
+listModels();
