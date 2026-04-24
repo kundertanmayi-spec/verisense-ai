@@ -71,12 +71,13 @@ app.post("/analyze", async (req, res) => {
     }
 
     const prompt = `
-      As a Senior Factual Auditor, analyze the following text for absolute factual accuracy, anachronisms, and category errors.
+      As a Google-Grounded Factual Auditor, analyze the following text for absolute factual accuracy, emulating the precision of a Google Featured Snippet.
       
       CRITICAL AUDIT RULES:
-      1. ANALYZE DATES: Identify if technologies or events are attributed to the wrong time period (e.g., Internet in the 1700s).
-      2. CATEGORY ERRORS: Identify if institutions or people are assigned the wrong profession or purpose (e.g., Medical schools called engineering colleges).
-      3. QUANTIFY CONFIDENCE: Use the following SCALE strictly:
+      1. GOOGLE-LEVEL ACCURACY: Compare claims against established facts found in top-tier sources like Google Knowledge Panels and Wikipedia.
+      2. ANALYZE DATES: Identify if technologies or events are attributed to the wrong time period.
+      3. CATEGORY ERRORS: Identify if institutions or people are assigned the wrong profession or purpose.
+      4. QUANTIFY CONFIDENCE: Use the following SCALE strictly:
          - 80–100%: Factually verified, contemporary, and logically sound.
          - 40–79%: Contains partial truths, unverified claims, or minor inaccuracies.
          - 0–39%: Categorically false, anachronistic, or medically/scientifically impossible.
