@@ -296,15 +296,27 @@ function renderResults(data) {
     "RELIABLE": "#3b82f6"
   };
 
-  const riskColor = colors[data.risk] || colors["LOW"];
+  // Verdict Mapping
+  const verdicts = {
+    "HIGH": { text: "INACCURATE", desc: "This claim is contradicted by verified factual sources." },
+    "MEDIUM": { text: "PARTIALLY TRUE", desc: "This text contains mixed facts or unverified claims." },
+    "LOW": { text: "ACCURATE", desc: "This information is consistent with verified factual records." }
+  };
+
+  const verdict = verdicts[data.risk] || verdicts["MEDIUM"];
+  const riskColor = colors[data.risk] || colors["MEDIUM"];
 
   // Update Score & Risk Level
+  const riskTitleEl = document.querySelector(".risk-info h3");
+  const riskLevelEl = document.getElementById("risk-level");
+  const riskDescEl = document.getElementById("risk-description");
   const scoreText = document.getElementById("score-text");
-  const riskLevel = document.getElementById("risk-level");
   const progressCircle = document.getElementById("circular-progress");
   
-  riskLevel.innerText = data.risk;
-  riskLevel.style.color = riskColor;
+  riskTitleEl.innerText = "Fact Check Verdict";
+  riskLevelEl.innerText = verdict.text;
+  riskLevelEl.style.color = riskColor;
+  riskDescEl.innerText = verdict.desc;
 
   // Animate score
   let currentScore = 0;
@@ -357,14 +369,19 @@ function renderResults(data) {
       <div class="finding-status ${colorClass}"><i data-lucide="${icon}"></i></div>
       <div class="finding-content">
         <div class="finding-text">${sentence.text}</div>
-        <div class="finding-subtext">${sentence.why}</div>
-        
-        ${sentence.corrected_fact ? `
-          <div class="correction-box">
-            <i data-lucide="check-circle-2"></i>
-            <div class="correction-info">
-              <span class="correction-label">Correct Fact</span>
-              <p>${sentence.corrected_fact}</p>
+        ${sentence.wiki ? `
+          <div class="search-insight-box">
+            <div class="insight-header">
+              <i data-lucide="globe"></i>
+              <span>According to Web Sources...</span>
+            </div>
+            <div class="insight-snippet">
+              <a href="${sentence.wiki.url}" target="_blank" class="snippet-title">${sentence.wiki.title}</a>
+              <p>${sentence.wiki.extract.substring(0, 200)}...</p>
+            </div>
+            <div class="insight-verdict ${sentence.risky ? 'fail' : 'pass'}">
+              <i data-lucide="${sentence.risky ? 'x-circle' : 'check-circle'}"></i>
+              <span>Verdict: ${sentence.risky ? 'Inconsistent' : 'Verified'}</span>
             </div>
           </div>
         ` : ""}

@@ -616,6 +616,69 @@ textarea:focus {
   border-color: white;
 }
 
+.search-insight-box {
+  margin-top: 15px;
+  margin-bottom: 15px;
+  background: rgba(66, 133, 244, 0.05);
+  border: 1px solid rgba(66, 133, 244, 0.2);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.insight-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--accent-blue);
+  letter-spacing: 0.5px;
+}
+
+.insight-header i { width: 14px; height: 14px; }
+
+.insight-snippet {
+  border-left: 2px solid var(--border-color);
+  padding-left: 15px;
+}
+
+.snippet-title {
+  display: block;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #8ab4f8;
+  text-decoration: none;
+  margin-bottom: 4px;
+}
+
+.snippet-title:hover { text-decoration: underline; }
+
+.insight-snippet p {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.insight-verdict {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 6px;
+  align-self: flex-start;
+}
+
+.insight-verdict.pass { background: rgba(16, 185, 129, 0.1); color: #10b981; }
+.insight-verdict.fail { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+.insight-verdict i { width: 16px; height: 16px; }
+
 .correction-box {
   margin-top: 12px;
   margin-bottom: 12px;
