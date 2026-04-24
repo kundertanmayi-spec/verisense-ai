@@ -167,6 +167,40 @@ app.post("/analyze", async (req, res) => {
       let why = "Analysis performed via Wikipedia cross-referencing (AI currently unavailable).";
       let correctedFact = "";
       
+      // 0. MATH EVALUATOR (Simple Arithmetic Check)
+      const mathMatch = text.match(/(\d+)\s*([\+\-\*\/])\s*(\d+)\s*(is|=)\s*(\d+)/i);
+      if (mathMatch) {
+        const num1 = parseInt(mathMatch[1]);
+        const op = mathMatch[2];
+        const num2 = parseInt(mathMatch[3]);
+        const claimedResult = parseInt(mathMatch[5]);
+        
+        let actualResult;
+        if (op === "+") actualResult = num1 + num2;
+        else if (op === "-") actualResult = num1 - num2;
+        else if (op === "*") actualResult = num1 * num2;
+        else if (op === "/") actualResult = num1 / num2;
+        
+        if (actualResult !== claimedResult) {
+          accuracyLabel = "INCORRECT";
+          accuracyScore = 0;
+          why = `Mathematical Error: The calculation ${num1} ${op} ${num2} equals ${actualResult}, not ${claimedResult}.`;
+          correctedFact = `${num1} ${op} ${num2} = ${actualResult}`;
+          return res.json({
+            result: JSON.stringify({
+              accuracy_score: 0,
+              accuracy_label: "INCORRECT",
+              explanation: "SYSTEM NOTICE: A fundamental mathematical error was detected in the statement.",
+              sentences: [{ text, accuracy: 0, why, corrected_fact: correctedFact }]
+            })
+          });
+        } else {
+          accuracyLabel = "CORRECT";
+          accuracyScore = 100;
+          why = `Verified: The calculation ${num1} ${op} ${num2} = ${claimedResult} is mathematically correct.`;
+        }
+      }
+
       if (wikiData) {
         const inputLower = text.toLowerCase();
         const wikiLower = wikiData.extract.toLowerCase();
