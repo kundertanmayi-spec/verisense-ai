@@ -321,21 +321,21 @@ function renderResults(data) {
     }
   }, 10);
 
-  // Update Breakdown
+  // Calculate Breakdown
   const counts = { high: 0, medium: 0, low: 0, reliable: 0 };
   data.sentences.forEach(s => {
-    if (s.risky) counts.high++;
-    else counts.low++; // Simple mapping for demo
+    if (s.risky) {
+      if (data.score >= 80) counts.high++;
+      else counts.medium++;
+    } else {
+      counts.reliable++;
+    }
   });
-  
-  // Fake some reliable counts if empty for UI variety
-  if (counts.high === 0 && counts.low === 0) counts.reliable = 1;
-  else counts.reliable = Math.max(1, Math.floor(data.sentences.length / 3));
 
-  updateBreakdown("high", counts.high, data.sentences.length + counts.reliable);
-  updateBreakdown("medium", counts.medium, data.sentences.length + counts.reliable);
-  updateBreakdown("low", counts.low, data.sentences.length + counts.reliable);
-  updateBreakdown("reliable", counts.reliable, data.sentences.length + counts.reliable);
+  updateBreakdown("high", counts.high, data.sentences.length);
+  updateBreakdown("medium", counts.medium, data.sentences.length);
+  updateBreakdown("low", counts.low, data.sentences.length);
+  updateBreakdown("reliable", counts.reliable, data.sentences.length);
 
   // Update Overall Explanation
   document.getElementById("overall-explanation").innerText = data.explanation;
@@ -348,8 +348,8 @@ function renderResults(data) {
     const sentenceDiv = document.createElement("div");
     sentenceDiv.className = "finding-item";
     
-    const icon = sentence.risky ? 'alert-circle' : 'check-circle';
-    const colorClass = sentence.risky ? 'high' : 'low';
+    const icon = sentence.risky ? 'alert-triangle' : 'check-circle';
+    const colorClass = sentence.risky ? (data.score >= 80 ? 'high' : 'medium') : 'reliable';
 
     const googleSearchUrl = `https://www.google.com/search?q=${encodeURIComponent(sentence.text)}`;
 
