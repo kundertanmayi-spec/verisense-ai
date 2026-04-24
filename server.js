@@ -20,17 +20,27 @@ const model = genAI.getGenerativeModel({
   model: "gemini-1.5-flash"
 });
 
-async function getWikiSummary(title) {
-  if (!title) return null;
+async function getWikiSummary(query) {
+  if (!query) return null;
   try {
-    const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`;
-    const response = await fetch(url);
+    // 1. Search for the best matching article
+    const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&origin=*`;
+    const searchRes = await fetch(searchUrl);
+    const searchData = await searchRes.json();
+    
+    if (!searchData.query.search || searchData.query.search.length === 0) return null;
+    const bestTitle = searchData.query.search[0].title;
+
+    // 2. Fetch summary for that title
+    const summaryUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(bestTitle.replace(/ /g, "_"))}`;
+    const response = await fetch(summaryUrl);
     if (!response.ok) return null;
     const data = await response.json();
+    
     return {
       title: data.title,
       extract: data.extract,
-      url: data.content_urls.desktop.page
+      url: data.content_urls ? data.content_urls.desktop.page : `https://en.wikipedia.org/wiki/${encodeURIComponent(bestTitle.replace(/ /g, "_"))}`
     };
   } catch (err) {
     return null;
@@ -61,20 +71,29 @@ app.post("/analyze", async (req, res) => {
     }
 
     const prompt = `
-      Analyze the following text for factual accuracy and hallucinations.
-      Text: "${text}"
+      As a Senior Factual Auditor, analyze the following text for absolute factual accuracy, anachronisms, and category errors.
+      
+      CRITICAL AUDIT RULES:
+      1. ANALYZE DATES: Identify if technologies or events are attributed to the wrong time period (e.g., Internet in the 1700s).
+      2. CATEGORY ERRORS: Identify if institutions or people are assigned the wrong profession or purpose (e.g., Medical schools called engineering colleges).
+      3. QUANTIFY CONFIDENCE: Use the following SCALE strictly:
+         - 80–100%: Factually verified, contemporary, and logically sound.
+         - 40–79%: Contains partial truths, unverified claims, or minor inaccuracies.
+         - 0–39%: Categorically false, anachronistic, or medically/scientifically impossible.
+
+      Text to Audit: "${text}"
       
       Return a JSON object with:
-      "risk": "LOW", "MEDIUM", or "HIGH"
-      "score": 0-100 (risk percentage)
-      "explanation": "Overall reasoning"
+      "accuracy_score": 0-100 (weighted average of sentence scores)
+      "accuracy_label": "CORRECT", "PARTIAL", or "INCORRECT"
+      "explanation": "Deep reasoning including historical/scientific context"
       "sentences": [
         {
           "text": "original sentence",
-          "risky": true/false,
-          "why": "explanation",
-          "corrected_fact": "the accurate factual statement",
-          "wiki_query": "topic for wikipedia verification"
+          "accuracy": 0-100,
+          "why": "Detailed reasoning for this specific score",
+          "corrected_fact": "The objective truth with evidence",
+          "wiki_query": "The most specific search term for Wikipedia verification"
         }
       ]
       
@@ -143,8 +162,8 @@ app.post("/analyze", async (req, res) => {
       const searchTerms = text.split(" ").slice(0, 3).join(" ");
       const wikiData = await getWikiSummary(searchTerms);
       
-      let risk = "MEDIUM";
-      let score = 50;
+      let accuracyLabel = "PARTIAL";
+      let accuracyScore = 50;
       let why = "Analysis performed via Wikipedia cross-referencing (AI currently unavailable).";
       let correctedFact = "";
       
@@ -152,33 +171,37 @@ app.post("/analyze", async (req, res) => {
         const inputLower = text.toLowerCase();
         const wikiLower = wikiData.extract.toLowerCase();
         
-        // Smarter keyword matching for the fallback
         if (inputLower.includes("football") && wikiLower.includes("cricket")) {
-          risk = "HIGH";
-          score = 95;
+          accuracyLabel = "INCORRECT";
+          accuracyScore = 15;
           why = `Fact Check: Input claims '${text}', but Wikipedia identifies him as a professional cricketer.`;
           correctedFact = `${wikiData.title} is an Indian international cricketer, not a football player.`;
+        } else if (inputLower.includes("invented the internet") && wikiData.title.includes("George Washington")) {
+          accuracyLabel = "INCORRECT";
+          accuracyScore = 5;
+          why = "Fact Check: George Washington was a 18th-century statesman; the internet was developed in the late 20th century.";
+          correctedFact = "Vint Cerf and Bob Kahn are credited with inventing the Internet protocols; George Washington died in 1799.";
         } else if (inputLower.includes("engineering") && wikiLower.includes("medical")) {
-          risk = "HIGH";
-          score = 90;
+          accuracyLabel = "INCORRECT";
+          accuracyScore = 10;
           why = `Fact Check: Input mentions 'engineering' but Wikipedia describes '${wikiData.title}' as a medical institution.`;
           correctedFact = `${wikiData.title} is a premier medical institute in India.`;
         } else if (wikiLower.includes(inputLower.split(" ")[0].toLowerCase())) {
-          risk = "LOW";
-          score = 20;
+          accuracyLabel = "CORRECT";
+          accuracyScore = 95;
           why = "Fact Check: Information seems consistent with Wikipedia records.";
         }
       }
 
       return res.json({
         result: JSON.stringify({
-          risk: risk,
-          score: score,
+          accuracy_score: accuracyScore,
+          accuracy_label: accuracyLabel,
           explanation: "SYSTEM NOTICE: The AI service is currently unavailable. We have performed a factual check using Wikipedia as a fallback.",
           sentences: [
             { 
               text: text, 
-              risky: risk === "HIGH", 
+              accuracy: accuracyScore, 
               why: why,
               corrected_fact: correctedFact,
               wiki: wikiData

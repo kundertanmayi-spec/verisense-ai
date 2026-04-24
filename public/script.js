@@ -288,54 +288,44 @@ function renderResults(data) {
   document.getElementById("results-placeholder").classList.add("hidden");
   document.getElementById("results-container").classList.remove("hidden");
 
-  // Colors based on risk
-  const colors = {
-    "LOW": "#10b981",
-    "MEDIUM": "#f59e0b",
-    "HIGH": "#ef4444",
-    "RELIABLE": "#3b82f6"
-  };
+  // Defensive check for old/new format
+  const score = data.accuracy_score !== undefined ? data.accuracy_score : (data.score !== undefined ? (100 - data.score) : 0);
+  const label = data.accuracy_label || data.risk || "UNKNOWN";
 
-  const riskColor = colors[data.risk] || colors["LOW"];
+  // Colors based on Accuracy Score
+  let accuracyColor = "#ef4444"; // Red (Incorrect)
+  if (score >= 80) accuracyColor = "#10b981"; // Green (Correct)
+  else if (score >= 40) accuracyColor = "#f59e0b"; // Orange (Partial)
 
-  // Update Score & Risk Level
+  // Update Score & Label
+  const levelEl = document.getElementById("accuracy-level");
   const scoreText = document.getElementById("score-text");
-  const riskLevel = document.getElementById("risk-level");
-  const progressCircle = document.getElementById("circular-progress");
-  
-  riskLevel.innerText = data.risk;
-  riskLevel.style.color = riskColor;
+  const descEl = document.getElementById("accuracy-description");
 
-  // Animate score
-  let currentScore = 0;
-  const targetScore = data.score;
-  const interval = setInterval(() => {
-    if (currentScore >= targetScore) {
-      clearInterval(interval);
-      scoreText.innerText = targetScore;
-      progressCircle.style.background = `conic-gradient(${riskColor} ${targetScore * 3.6}deg, var(--bg-tertiary) 0deg)`;
-    } else {
-      currentScore++;
-      scoreText.innerText = currentScore;
-      progressCircle.style.background = `conic-gradient(${riskColor} ${currentScore * 3.6}deg, var(--bg-tertiary) 0deg)`;
-    }
-  }, 10);
+  levelEl.innerText = label;
+  levelEl.style.color = accuracyColor;
+  scoreText.innerText = score;
+  
+  if (score >= 80) descEl.innerText = "This statement is factually verified and reliable.";
+  else if (score >= 40) descEl.innerText = "This statement contains partial truths or unverified claims.";
+  else descEl.innerText = "This statement is highly likely to be incorrect or hallucinated.";
+
+  // Circular Progress
+  const progress = document.getElementById("circular-progress");
+  progress.style.background = `conic-gradient(${accuracyColor} ${score * 3.6}deg, var(--bg-tertiary) 0deg)`;
 
   // Calculate Breakdown
-  const counts = { high: 0, medium: 0, low: 0, reliable: 0 };
+  const counts = { high: 0, medium: 0, low: 0 };
   data.sentences.forEach(s => {
-    if (s.risky) {
-      if (data.score >= 80) counts.high++;
-      else counts.medium++;
-    } else {
-      counts.reliable++;
-    }
+    const sScore = s.accuracy !== undefined ? s.accuracy : 50;
+    if (sScore >= 80) counts.high++;
+    else if (sScore >= 40) counts.medium++;
+    else counts.low++;
   });
 
   updateBreakdown("high", counts.high, data.sentences.length);
   updateBreakdown("medium", counts.medium, data.sentences.length);
   updateBreakdown("low", counts.low, data.sentences.length);
-  updateBreakdown("reliable", counts.reliable, data.sentences.length);
 
   // Update Overall Explanation
   document.getElementById("overall-explanation").innerText = data.explanation;
@@ -348,15 +338,19 @@ function renderResults(data) {
     const sentenceDiv = document.createElement("div");
     sentenceDiv.className = "finding-item";
     
-    const icon = sentence.risky ? 'alert-triangle' : 'check-circle';
-    const colorClass = sentence.risky ? (data.score >= 80 ? 'high' : 'medium') : 'reliable';
+    const sScore = sentence.accuracy !== undefined ? sentence.accuracy : 50;
+    
+    let icon = "alert-triangle";
+    let colorClass = "high"; // We use 'high' class for red in CSS
+    if (sScore >= 80) { icon = "check-circle"; colorClass = "low"; } // 'low' class for green
+    else if (sScore >= 40) { icon = "alert-circle"; colorClass = "medium"; }
 
     const googleSearchUrl = `https://www.google.com/search?q=${encodeURIComponent(sentence.text)}`;
 
     sentenceDiv.innerHTML = `
       <div class="finding-status ${colorClass}"><i data-lucide="${icon}"></i></div>
       <div class="finding-content">
-        <div class="finding-text">${sentence.text}</div>
+        <div class="finding-text">${sentence.text} <span class="accuracy-pill ${colorClass}">${sScore}%</span></div>
         <div class="finding-subtext">${sentence.why}</div>
         
         ${sentence.corrected_fact ? `
