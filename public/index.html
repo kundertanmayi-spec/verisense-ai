@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VeriSense AI - Hallucination Detection</title>
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<div class="main-container">
+  <header>
+    <h1>VeriSense AI</h1>
+    <p class="subtitle">We combine AI analysis with explainability to detect hallucinations and make AI trustworthy.</p>
+  </header>
+
+  <div class="analyzer-section">
+    <textarea id="text" placeholder="Paste your AI generated text here for verification..."></textarea>
+    <button onclick="analyze()" id="analyze-btn">
+      <span class="btn-text">Analyze Text</span>
+      <div class="spinner hidden" id="spinner"></div>
+    </button>
+  </div>
+
+  <div id="results-container" class="hidden">
+    <div class="dashboard">
+      <div class="score-card">
+        <h3>Risk Score</h3>
+        <div class="circular-progress" id="circular-progress">
+          <div class="inner-circle" id="score-text">0</div>
+        </div>
+        <div class="badge" id="risk-badge">LOW RISK</div>
+      </div>
+      
+      <div class="explanation-card">
+        <h3>Overall Analysis</h3>
+        <p id="overall-explanation"></p>
+      </div>
+    </div>
+
+    <div class="sentences-section">
+      <h3>Sentence Breakdown</h3>
+      <div id="sentences-list"></div>
+    </div>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
